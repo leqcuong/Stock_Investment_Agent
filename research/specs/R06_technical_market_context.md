@@ -16,6 +16,8 @@ The handoff asks for a small, documented feature set and a transparent baseline:
 
 Handoff §8.1, §8.3, §8.4, §9.1–§9.2, §11 (liquidity screen), §18.2.
 
+Counter-view (optional): `research/notes/Graham_Intelligent_Investor_fit.md`. Graham argues against chart and momentum rules. It is a 1973 US source, so it does not count toward the bibliography. It may serve as a value/quality comparator only, never as evidence for or against the baseline.
+
 ## Research questions
 
 1. **Momentum and reversal evidence in Vietnam.** Academic studies on cross-sectional momentum, short-term reversal, 52-week-high effects, and industry momentum on HOSE/HNX. What horizons, holding periods and liquidity filters do they use, and how do they handle costs? Does the evidence support a 5–20 session horizon or argue against it?

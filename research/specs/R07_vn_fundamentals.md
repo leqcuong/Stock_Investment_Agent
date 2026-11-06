@@ -16,6 +16,8 @@ Financial analysis is in Phase 1 scope, but historical ML financial features are
 
 Handoff §7.1 (Financial observation), §7.2, §8.2, §9.4, §14 (A06, A07).
 
+Also read `research/notes/Graham_Intelligent_Investor_fit.md`: a reference screening catalog (Graham, *The Intelligent Investor*, Ch. 14–15) with an initial data-availability table. It is a US 1970s reference for formulas, not Vietnam-calibrated thresholds, and its availability column is untested. Probe `Fundamental.equity.*` on sample tickers, including whether `filing` carries publication dates, and settle each row.
+
 ## Research questions
 
 1. **Disclosure deadlines.** The regulation in force (historically Circular 96/2020/TT-BTC; check for replacements or amendments up to 2026). Deadlines for quarterly, semi-annual (reviewed) and annual (audited) reports, and extension conditions. Are these deadlines a safe **conservative availability proxy** when the actual publication date is unknown? Quantify how often companies file late, if any data exists.
