@@ -1,6 +1,7 @@
-# Data capabilities — vnstock 5.2.1 Community (draft)
+# Data capabilities — vnstock 5.2.1 Community
 
-Status: **draft from the 2026-11-06 pilot** (handoff §4.3). Sources: `research/findings/R02_findings.md` Addenda A–D.
+Status: **updated after the full backfill finished 2026-11-07** (handoff §4.3). Sources: `research/findings/R02_findings.md` Addenda A–F.
+Local store: 2,479,049 daily rows and 29,402,326 one-minute rows (`data/*.sqlite`, git-ignored).
 TCBS OpenAPI (R01) is not yet evaluated, so nothing here describes TCBS.
 
 | Topic | Observation |
@@ -18,9 +19,10 @@ TCBS OpenAPI (R01) is not yet evaluated, so nothing here describes TCBS.
 | Volume | Matched vs negotiated not stated; 1m sums match daily volume (median 0.999). |
 | Universe | `Reference().equity.list_by_exchange()`: 1,755 rows — HOSE 408, HNX 299, UPCOM 810, DELISTED 238 — with ICB level-2 code. Current snapshot only. |
 | VN100 | `list_by_group("VN100")` = 100 symbols (current only; no membership history). |
-| Delisted symbols | Daily prices returned from 2020 up to the delisting date (e.g. NS2 to 2026-02-12). Delistings before 2020 and membership by date are not recoverable. |
-| Zero-volume rows | ~21% of daily rows in the pilot (tier 3 and delisted most) are flat filler bars with volume 0: no trade. |
-| Data quality | 0.04% of rows (volume > 0) fail high/low bounds, probably mixed adjustment between fields. |
+| Delisted symbols | Daily prices from 2020 up to the delisting date (e.g. NS2 to 2026-02-12) for **213 of 238** delisted tickers; the other 25 (e.g. BLU, BPW, DKH) return `VNSTOCK_INPUT_SYMBOL_UNKNOWN`. Delistings before 2020 and membership by date are not recoverable. |
+| Zero-volume rows | 805,410 of 2,479,049 daily rows (32.5%) have volume 0 (763,943 fully flat): no trade; exclude from features. |
+| Missing sessions | Thin stocks have no row on days they did not trade (1,175 of 1,720 symbols have gaps inside their own span). A missing day is not a data gap; carry an explicit no-trade state. |
+| Data quality | 1,013 of 1,673,639 traded rows (0.06%) fail high/low bounds or have a non-positive price; flag and exclude from features. MES and PX1 have an identical daily series (suspect). 1m and daily agree (volume ratio median 1.000). |
 | Corporate actions / financials | Not yet crawled or tested (`Reference.company.events`, `Fundamental.equity.*`). Statements: 8 periods, no publication dates (R02 Q5). |
 | Indices | VNINDEX, VN30, HNXINDEX, UPCOMINDEX: 1,707 sessions from 2020-01-02 via `Market().index(symbol)` (source KBS). **Max ~1,000 rows per call** (newest kept), so fetched in 730-day windows. VN100 index series: not available (0-1 rows); VN100 constituents list works. |
 | Fixtures | None committed yet. Sanitized response samples should be added under `tests/fixtures/` from the local database (no credentials in responses). |

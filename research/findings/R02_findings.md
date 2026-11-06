@@ -385,3 +385,32 @@ Model-card wording updated by this pilot: prices are adjusted with full precisio
 ## Addendum E — Index daily data: ~1,000-row cap per call (Observed 2026-11-06)
 
 The pilot stored only **999 rows per index starting 2022-11** for VNINDEX, VN30, HNXINDEX and UPCOMINDEX: `Market().index(sym).ohlcv` (source KBS) returns at most ~1,000 rows per call and silently keeps the newest. Fix: indices are fetched in 730-day windows; result 1,707 sessions per index from 2020-01-02 (VN30: 1,706). **`VN100` index returns 0–1 rows from this source** (the VN100 *constituent list* works), so no VN100 index series is available. Equity daily calls are not affected (VCI returned 1,700+ rows in one call). Lesson recorded as a test: `test_index_is_fetched_in_contiguous_windows`. The first `validate` run compared symbol calendars against a VNINDEX series that began in 2022-11, so its "missing sessions" figure for earlier dates was understated and must be re-run after the full crawl.
+
+## Addendum F — Full backfill results and final validation (Observed 2026-11-06 01:13 to 2026-11-07 00:56, 7,574 calls, ~23.7 h, 0 stderr output)
+
+**Coverage (symbols with at least one stored row / jobs failed):**
+
+| Data | Symbols | Rows | Failed |
+| --- | --- | --- | --- |
+| Daily, tier 0 indices (VNINDEX, VN30, HNXINDEX, UPCOMINDEX, VN100) | 5 | 6,832 | 0 (VN100 index has ~1 row) |
+| Daily, VN100 / other HOSE / HNX+UPCoM | 100 / 308 / 1,109 | 160,645 / 493,290 / 1,626,875 | 0 |
+| Daily, delisted | 213 of 238 | 191,411 | **25** |
+| 1m, VN100 / other HOSE / HNX+UPCoM | 100 / 308 / 1,109 | 14.10 M / 9.13 M / 5.91 M | 0 |
+| 1m, delisted | 213 jobs done (many returned few or 0 rows) | 255,660 | **25** |
+
+Totals: 2,479,049 daily rows (`market_daily.sqlite`, 0.27 GB) and 29,402,326 one-minute rows (`intraday_1m.sqlite`, 1.68 GB; 1,615 symbols have at least one row; range 2023-09-11 to 2026-11-06). Storage came out far below the 3 GB projection because many HNX/UPCoM and delisted symbols have sparse or no 1m history.
+
+**The 25 failures** are `VNSTOCK_INPUT_SYMBOL_UNKNOWN` ("source 'vci' has no symbol …", e.g. BLU, BPW, DKH): they are delisted tickers the provider no longer keeps. They are a source limit, not a network fault; delisted coverage is therefore 213/238 (89.5%). The same code marks them `transient` and spends three retries (about 4 minutes) per job. It should be classified as a permanent skip (follow-up, not changed here).
+
+**Final validation (`backfill.py validate`, 2026-11-07 00:56):**
+
+- 1m vs daily over 360,818 symbol-days: volume ratio median 1.000 (p5 0.990, p95 1.000); last-1m-close / daily-close median 1.0000 (p5 1.0000, p95 1.0000). The two series share the same adjusted basis across the whole universe.
+- The 42,470 rows flagged by the OHLC rule split into: **41,467 zero-volume filler rows** whose `open` differs from the flat high=low=close (not a trade, ignore) and **1,003 rows with volume > 0** whose high/low do not bound open/close, plus **10 rows with a non-positive price and volume > 0**. So 0.06% of traded rows (1,013 of 1,673,639) are inconsistent. Per tier: 5 indices, 14 VN100, 79 other HOSE, 794 HNX/UPCoM, 111 delisted. Consistent with the pilot's reading (mixed adjustment between fields), not a crawler fault. Policy for downstream use: keep, flag, and exclude from feature calculation.
+- **Zero-volume rows:** 805,410 of 2,479,049 (32.5%); 763,943 of them are fully flat (open=high=low=close). The pilot's 21% understated this because the pilot held more liquid symbols.
+- **Calendar:** VNINDEX has 1,707 sessions (2020-01-02 to 2026-11-05). Of 1,720 non-index symbols with data, 1,175 have at least one session missing inside their own first–last span, 1,042 have more than 5 and 792 have more than 20 (HLT: 1,142 rows vs 1,703 sessions). So the provider **omits many non-trading days for thinly traded stocks instead of filling every day**; 218 symbols start after 2020-01-10 (listed later). A missing session must not be read as a data gap, and a feature pipeline must carry an explicit "no trade" state (forward-fill price with volume 0) rather than assume a full panel.
+- **Identical series:** MES (UPCoM, Cơ điện Công trình) and PX1 (delisted, Xi măng Sông Lam 2) have a byte-identical daily close series, 1,139 rows from 2020-01-02 to 2024-07-25 (average close 10.0, suggesting a constant/placeholder series). Treat both as suspect and exclude until explained.
+- **Large day-to-day jumps** (> +50% / −40%) appear for small caps (e.g. ATA 2020-06-05 0.5×, then 2020-06-12 3.0×). At least some come from the tick size on very low-priced shares (as for CTA in the pilot). They were not individually adjudicated; flag, do not delete.
+
+**Revised model-card wording for the source:** prices are adjusted, in thousand VND, full precision; delisted prices exist from 2020 for 89.5% of delisted tickers; 1m history starts 2023-09 (some symbols later) and holds only minutes with trades; thin stocks have no row on days they did not trade; 1,013 traded rows (0.06%) have inconsistent high/low; two series (MES, PX1) are suspect.
+
+**Still open:** corporate-action events and financial statements (not crawled; R07 should probe `Fundamental.equity.*` including `filing`); the delisted symbols the provider dropped (25) need another source (candidate: TCBS, R01); R01 may revise gate G1.
